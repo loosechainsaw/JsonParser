@@ -17,92 +17,113 @@ module Parser =
 
     type TokenStream = Token list
 
-    type ParseExpression = (TokenStream * AbstractSyntaxTree)
+    type ParseExpression = Either<string,(TokenStream * AbstractSyntaxTree)>
 
-    type ArrayBody = (TokenStream * AbstractSyntaxTree list)
+    type ArrayBody = Either<string,(TokenStream *  AbstractSyntaxTree list)>
 
-    type ObjectBody = (TokenStream * (String * AbstractSyntaxTree) list)
+    type ObjectBody = Either<string,(TokenStream *  (String * AbstractSyntaxTree) list)>
 
     let rec parse_array (input:TokenStream) : ParseExpression = 
         match input with
             | OpenBracket :: t -> 
-                let unparsed, body = parse_array_body t
 
-                match unparsed with
-                    | [] -> failwith "Unexpected end of input"
-                    | CloseBracket :: rest ->
-                        (rest, Array(body))
-                    | _ -> failwith "Error"
+                parse_array_body t >>= (fun t -> 
+                                            let unparsed, body = t
 
-            | _ -> failwith "Invalid token"
+                                            match unparsed with
+                                                | [] -> Left("Unexpected end of input")
+                                                | CloseBracket :: rest ->
+                                                    Right((rest, Array(body)))
+                                                | _ -> Left("Error")
+
+                                        )
+
+            | _ -> Left("Invalid token")
 
     and parse_array_body (input:TokenStream) : ArrayBody =
         match input with
-            | CloseBracket :: t -> (input, [])
-            | Comma :: CloseBracket :: t -> failwith "Invalid format"
+            | CloseBracket :: t -> Right((input, []))
+            | Comma :: CloseBracket :: t -> Left("Invalid format")
             | t -> 
-                let unparsed, element = parse_impl t
+                parse_impl t >>= (fun t -> 
+                                    let unparsed, element = t
 
-                match unparsed with
-                    | CloseBracket :: t -> unparsed, element :: []
-                    | Comma :: rest ->
-                        let unprocessed, otherelement = parse_array_body rest
-                        (unprocessed, element :: otherelement)
-                    | _ -> failwith "Comma expected"
+                                    match unparsed with
+                                        | CloseBracket :: t -> Right(unparsed, element :: [])
+                                        | Comma :: rest ->
+                                            (parse_array_body rest) >>= (fun t -> 
+                                                                            let unprocessed, otherelement = t
+                                                                            Right((unprocessed, element :: otherelement))
+                                                                        )
+                                        | _ -> Left("Comma expected")
 
+                                )
+            | _ -> Left("Invalid token")
                
     and parse_object (input:TokenStream) : ParseExpression = 
         match input with
             | OpenBrace :: t -> 
-                let unparsed, body = parse_object_body t
+                parse_object_body t >>= (fun t -> 
+                                            let unparsed, body = t
 
-                match unparsed with
-                    | [] -> failwith "Unexpected end of input"
-                    | CloseBrace :: rest ->
-                        (rest, Obj(body))
-                    | _ -> failwith "Error"
+                                            match unparsed with
+                                                | [] -> Left("Unexpected end of input")
+                                                | CloseBrace :: rest ->
+                                                    Right((rest, Obj(body)))
+                                                | _ -> Left("Error")
 
-            | _ -> failwith "Invalid token"
+                                        )
+
+            | _ -> Left("Invalid token")
 
     and parse_object_body (input:TokenStream) : ObjectBody =
         match input with
-            | CloseBrace :: t -> (input, [])
-            | Comma :: CloseBrace :: t | Colon :: Comma :: t -> failwith "Invalid format"
+            | CloseBrace :: t -> Right((input, []))
+            | Comma :: CloseBrace :: t | Colon :: Comma :: t -> Left("Invalid format")
             | Token.String(label) :: Colon :: t -> 
-                let unparsed, element = parse_impl t
+                parse_impl t >>= (fun t -> 
+                                        let unparsed, element = t
 
-                match unparsed with
-                    | CloseBrace :: t -> unparsed, (label, element) :: []
-                    | Comma :: rest ->
-                        let unprocessed, otherelement = parse_object_body rest
-                        (unprocessed, (label, element) :: otherelement)
-                    | _ -> failwith "Comma expected"
+                                        match unparsed with
+                                            | CloseBrace :: t -> Right(unparsed, (label, element) :: [])
+                                            | Comma :: rest ->
+                                                parse_object_body rest >>= (fun t -> 
+                                                                                let unprocessed, otherelement = t
+                                                                                Right((unprocessed, (label, element) :: otherelement))
+                                                                            )
+
+                                            | _ -> Left("Comma expected")
+                                )
+            | _ -> Left("Invalid token")
 
     and parse_primative (input: TokenStream) : ParseExpression =
         
         match input with
-            | Token.String(value) :: t -> (t, String(value))
-            | Token.Null :: t -> (t, Null)
-            | Token.Number(value) :: t -> (t, Number(value))
-            | Token.False :: t -> (t, Boolean(false))
-            | Token.True :: t -> (t, Boolean(true))
-            | _ -> failwith "Unexpected primative"
+            | Token.String(value) :: t -> Right ((t, String(value)))
+            | Token.Null :: t -> Right ((t, Null))
+            | Token.Number(value) :: t -> Right ((t, Number(value)))
+            | Token.False :: t -> Right ((t, Boolean(false)))
+            | Token.True :: t -> Right ((t, Boolean(true)))
+            | _ -> Left("Unexpected primative")
     
     and parse_impl (tokens:TokenStream) : ParseExpression = 
         match tokens with
-            | [] -> failwith "Empty"
+            | [] -> Left("Empty")
             | OpenBracket :: t -> parse_array tokens  
             | OpenBrace :: t -> parse_object tokens  
             | h :: t ->  parse_primative tokens
 
-    and parse (text : string) : AbstractSyntaxTree = 
+    and parse (text : string) : Either<string,AbstractSyntaxTree> = 
         let tokens = Scanner.tokenizer text
         
-        match tokens with
-            | Left(v) -> failwith v
-            | Right(v) -> 
-                let rest, result = parse_impl v
+        tokens >>= parse_impl >>= 
+            (fun t -> 
+                 let rest, result = t
+                 match rest with
+                    | [] -> Right(result)
+                    | _ -> Left("Unconsumed tokens")
+            )
 
-                match rest with
-                    | [] -> result
-                    | _ -> failwith "Unconsumed tokens"
+               
+
+                

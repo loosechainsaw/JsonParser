@@ -13,7 +13,9 @@ module ParserTests =
         let ast = parse text
         let expected = Number(text)
 
-        Assert.AreEqual(expected, ast)
+        match ast with
+            | Left(_) -> Assert.Fail()
+            | Right(ast) ->  Assert.AreEqual(expected, ast)
 
     [<Test>]
     let parse_simple_null_keyword_should_return_a_null_ast_node () = 
@@ -21,7 +23,9 @@ module ParserTests =
         let ast = parse text
         let expected = Null
 
-        Assert.AreEqual(expected, ast )
+        match ast with
+            | Left(_) -> Assert.Fail()
+            | Right(ast) ->  Assert.AreEqual(expected, ast)
 
     [<Test>]
     let parse_simple_truel_keyword_should_return_a_null_ast_node () = 
@@ -29,7 +33,9 @@ module ParserTests =
         let ast = parse text
         let expected = Boolean(true)
 
-        Assert.AreEqual(expected, ast)
+        match ast with
+            | Left(_) -> Assert.Fail()
+            | Right(ast) ->  Assert.AreEqual(expected, ast)
 
     [<Test>]
     let parse_simple_false_keyword_should_return_a_null_ast_node () = 
@@ -37,7 +43,9 @@ module ParserTests =
         let ast = parse text
         let expected = Boolean(false)
 
-        Assert.AreEqual(expected, ast)
+        match ast with
+            | Left(_) -> Assert.Fail()
+            | Right(ast) ->  Assert.AreEqual(expected, ast)
 
     [<Test>]
     let parse_array_with_no_elements_should_return_empty_array () = 
@@ -45,7 +53,9 @@ module ParserTests =
         let ast = parse text
         let expected = Array([])
 
-        Assert.AreEqual(expected, ast)
+        match ast with
+            | Left(_) -> Assert.Fail()
+            | Right(ast) ->  Assert.AreEqual(expected, ast)
        
     [<Test>]
     let parse_array_with_single_element_should_return_correct_result () = 
@@ -53,7 +63,9 @@ module ParserTests =
         let ast = parse text
         let expected = Array([Number("1");])
 
-        Assert.AreEqual(expected, ast)         
+        match ast with
+            | Left(_) -> Assert.Fail()
+            | Right(ast) ->  Assert.AreEqual(expected, ast)       
 
     [<Test>]
     let parse_array_with_2_elements_should_return_correct_result () = 
@@ -61,7 +73,9 @@ module ParserTests =
         let ast = parse text
         let expected = Array([Number("1");Number("2");])
 
-        Assert.AreEqual(expected, ast)   
+        match ast with
+            | Left(_) -> Assert.Fail()
+            | Right(ast) ->  Assert.AreEqual(expected, ast)
      
     [<Test>]
     let parse_array_with_2_element_nested_array_should_return_correct_result () = 
@@ -69,7 +83,9 @@ module ParserTests =
         let ast = parse text
         let expected =  Array([Array([Number("1");Number("2");]);])
 
-        Assert.AreEqual(expected, ast)   
+        match ast with
+            | Left(_) -> Assert.Fail()
+            | Right(ast) ->  Assert.AreEqual(expected, ast) 
            
     [<Test>]
     let parse_array_with_2_2_element_nested_array_should_return_correct_result () = 
@@ -77,7 +93,9 @@ module ParserTests =
         let ast = parse text
         let expected =  Array([Array([Number("1");Number("2");]);Array([Number("3");Number("4");]);])
 
-        Assert.AreEqual(expected, ast)   
+        match ast with
+            | Left(_) -> Assert.Fail()
+            | Right(ast) ->  Assert.AreEqual(expected, ast)
 
     [<Test>]
     let parse_object_with_simple_string_property_with_number_value_should_return_correct_result () = 
@@ -85,7 +103,9 @@ module ParserTests =
         let ast = parse text
         let expected =  Obj([("Age", Number("21"));])
 
-        Assert.AreEqual(expected, ast)  
+        match ast with
+            | Left(_) -> Assert.Fail()
+            | Right(ast) ->  Assert.AreEqual(expected, ast)
 
     [<Test>]
     let parse_object_with_simple_string_property_with_array_as_the_value_should_return_correct_result () = 
@@ -93,4 +113,6 @@ module ParserTests =
         let ast = parse text
         let expected =  Obj([("Age", Array([Number("1");Number("2");]));])
 
-        Assert.AreEqual(expected, ast)  
+        match ast with
+            | Left(_) -> Assert.Fail()
+            | Right(ast) ->  Assert.AreEqual(expected, ast)
